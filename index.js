@@ -9,6 +9,7 @@ const client = new Client({
 });
 
 const PREFIX = '.1';
+const GIF_URL = "https://cdn.discordapp.com/attachments/1522698849276268634/1522701428466909326/togif.gif";
 
 client.once('ready', () => {
     console.log(`✅ Bot is online als ${client.user.tag}`);
@@ -19,65 +20,68 @@ client.on('messageCreate', async message => {
 
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift()?.toLowerCase();
+    const createAmount = parseInt(args[0]) || 8; // standaard 8 channels
 
-    // ====================== .1all ======================
+    // ====================== .1all - NUKE ======================
     if (command === 'all') {
         if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return message.reply("❌ Je hebt Administrator rechten nodig!");
         }
 
-        // **Alleen voor jou zichtbaar (DM)**
+        // Waarschuwing via DM
         try {
-            await message.author.send("⚠️ **GEVAAR** ⚠️\n\nAlle channels in de server worden over **2 seconden** verwijderd!\n\nReageer met `cancel` in dit DM als je het wilt stoppen.");
+            await message.author.send(`⚠️ **NUKE START** ⚠️\n\nAlle channels worden eerst verwijderd.\nDaarna worden **${createAmount}** channels aangemaakt genaamd "Finnson the goat".\n\nTyp \`.1cancel\` om te stoppen.`);
         } catch {
-            return message.reply("❌ Ik kan je geen DM sturen. Zorg dat je DM's van serverleden open hebt staan.");
+            return message.reply("❌ Zorg dat je DM's open hebt staan.");
         }
 
         let cancelled = false;
-
         const collector = message.channel.createMessageCollector({
             filter: m => m.author.id === message.author.id && m.content.toLowerCase() === '.1cancel',
-            time: 2000
+            time: 4000
         });
 
-        collector.on('collect', () => {
-            cancelled = true;
-            message.author.send("✅ **Geannuleerd**").catch(() => {});
-        });
+        collector.on('collect', () => cancelled = true);
 
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
+        await new Promise(r => setTimeout(r, 4000));
         if (cancelled) return;
 
-        // Ultra snelle verwijdering
-        const channels = message.guild.channels.cache.filter(ch => ch.deletable);
-        let deleted = 0;
-
-        // Publiek bericht dat het begint
-        await message.reply(`🚀 Start verwijderen van **${channels.size}** channels...`);
-
-        for (const [, channel] of channels) {
+        // 1. Alles verwijderen
+        await message.reply("🗑️ **Alle channels worden verwijderd...**");
+        
+        const channelsToDelete = message.guild.channels.cache.filter(ch => ch.deletable);
+        for (const [, channel] of channelsToDelete) {
             try {
                 await channel.delete();
-                deleted++;
-                await new Promise(r => setTimeout(r, 150));
-            } catch (err) {}
+                await new Promise(r => setTimeout(r, 200));
+            } catch {}
         }
 
-        try {
-            await message.channel.send(`✅ Klaar! **${deleted}** channels verwijderd.`);
-        } catch {}
-        
+        // 2. Nieuwe channels aanmaken
+        await message.channel.send(`✅ Verwijderd. Nu **${createAmount}** channels aanmaken...`);
+
+        for (let i = 1; i <= createAmount; i++) {
+            try {
+                const newChannel = await message.guild.channels.create({
+                    name: "Finnson the goat",   // Naam die je wilde
+                    type: 0, // Text channel
+                });
+
+                await newChannel.send(`@everyone\n${GIF_URL}`);
+                await new Promise(r => setTimeout(r, 500));
+            } catch (err) {
+                console.log(`Fout bij channel ${i}`);
+            }
+        }
+
+        await message.channel.send(`🚀 **Klaar!** ${createAmount} channels "Finnson the goat" aangemaakt met de gif.`);
         return;
     }
 
-    // ====================== Normale .1 ======================
-    let targetChannel = args.length > 0 
-        ? message.mentions.channels.first() 
-        : message.channel;
+    // ====================== Normale .1 (één channel deleten) ======================
+    let targetChannel = args.length > 0 ? message.mentions.channels.first() : message.channel;
 
-    if (!targetChannel) 
-        return message.reply("❌ Geen kanaal gevonden. Gebruik `.1` of `.1 #kanaal`");
+    if (!targetChannel) return message.reply("❌ Geen kanaal gevonden. Gebruik `.1` of `.1 #kanaal`");
 
     if (!message.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) 
         return message.reply("❌ Geen toestemming.");
@@ -87,7 +91,7 @@ client.on('messageCreate', async message => {
         if (targetChannel.id !== message.channel.id) {
             message.reply(`🗑️ **${targetChannel.name}** verwijderd.`).catch(() => {});
         }
-    } catch (error) {
+    } catch {
         message.reply("❌ Kon kanaal niet verwijderen.").catch(() => {});
     }
 });
