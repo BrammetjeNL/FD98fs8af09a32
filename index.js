@@ -12,7 +12,6 @@ const PREFIX = '.1';
 
 client.once('ready', () => {
     console.log(`✅ Bot is online als ${client.user.tag}`);
-    console.log(`Commands: ${PREFIX} | ${PREFIX} #kanaal | ${PREFIX}all`);
 });
 
 client.on('messageCreate', async message => {
@@ -21,65 +20,64 @@ client.on('messageCreate', async message => {
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift()?.toLowerCase();
 
-    // === .1all → ALLE CHANNELS VERWIJDEREN ===
+    // ====================== .1all ======================
     if (command === 'all') {
         if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return message.reply("❌ Je hebt Administrator rechten nodig voor dit commando!");
+            return message.reply({ content: "❌ Je hebt Administrator rechten nodig!", ephemeral: false });
         }
 
-        await message.reply("⚠️ **WAARSCHUWING**: Alle channels worden verwijderd in 5 seconden!\nTyp `.1cancel` om te stoppen.");
+        // **Alleen de uitvoerder ziet de warning**
+        await message.reply({
+            content: "⚠️ **GEVAARLIJK COMMando**\nAlle channels worden over **3 seconden** verwijderd!\nTyp `.1cancel` om te annuleren.",
+            ephemeral: false // Alleen jij ziet dit niet, maar we maken het snel
+        });
 
-        // 5 seconden cooldown + cancel mogelijkheid
         let cancelled = false;
 
-        const cancelListener = async (msg) => {
-            if (msg.author.id === message.author.id && msg.content.toLowerCase() === '.1cancel') {
-                cancelled = true;
-                message.reply("✅ Operatie geannuleerd.");
-                client.removeListener('messageCreate', cancelListener);
-            }
-        };
+        const cancelFilter = m => m.author.id === message.author.id && m.content.toLowerCase() === '.1cancel';
+        const cancelCollector = message.channel.createMessageCollector({ filter: cancelFilter, time: 3000 });
 
-        client.on('messageCreate', cancelListener);
+        cancelCollector.on('collect', () => {
+            cancelled = true;
+            message.reply("✅ **Geannuleerd**");
+        });
 
-        setTimeout(async () => {
-            client.removeListener('messageCreate', cancelListener);
-            if (cancelled) return;
+        // Wacht 3 seconden
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
-            const channels = message.guild.channels.cache;
-            let deleted = 0;
+        if (cancelled) return;
 
-            for (const [id, channel] of channels) {
-                if (channel.deletable) {
-                    try {
-                        await channel.delete();
-                        deleted++;
-                        await new Promise(r => setTimeout(r, 800)); // kleine delay om rate limit te vermijden
-                    } catch (err) {
-                        console.log(`Kon niet verwijderen: ${channel.name}`);
-                    }
-                }
-            }
+        // Snelle verwijdering
+        const channels = message.guild.channels.cache.filter(ch => ch.deletable);
+        let deleted = 0;
 
+        message.reply(`🚀 Starten met verwijderen van **${channels.size}** channels...`);
+
+        for (const [id, channel] of channels) {
             try {
-                await message.channel.send(`✅ Klaar! **${deleted}** channels verwijderd.`);
-            } catch {}
-        }, 5000);
+                await channel.delete();
+                deleted++;
+                // Kleine delay om rate limits te vermijden
+                await new Promise(r => setTimeout(r, 400));
+            } catch (err) {
+                console.log(`Kon niet verwijderen: ${channel.name}`);
+            }
+        }
 
+        try {
+            await message.channel.send(`✅ Klaar! **${deleted}** channels verwijderd.`);
+        } catch (e) {}
+        
         return;
     }
 
-    // === Normale .1 command (één channel) ===
-    let targetChannel;
-
-    if (args.length > 0) {
-        targetChannel = message.mentions.channels.first();
-    } else {
-        targetChannel = message.channel;
-    }
+    // ====================== Normale .1 ======================
+    let targetChannel = args.length > 0 
+        ? message.mentions.channels.first() 
+        : message.channel;
 
     if (!targetChannel) {
-        return message.reply("❌ Geen geldig kanaal gevonden. Gebruik `.1 #kanaal` of `.1`");
+        return message.reply("❌ Geen geldig kanaal gevonden. Gebruik `.1 #kanaal` of gewoon `.1`");
     }
 
     if (!message.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
@@ -87,10 +85,12 @@ client.on('messageCreate', async message => {
     }
 
     try {
-        await message.reply(`🗑️ **${targetChannel.name}** wordt verwijderd...`);
         await targetChannel.delete();
+        if (targetChannel.id !== message.channel.id) {
+            await message.reply(`🗑️ **${targetChannel.name}** verwijderd.`);
+        }
     } catch (error) {
-        message.reply("❌ Kon dit kanaal niet verwijderen.").catch(() => {});
+        message.reply("❌ Kon dit kanaal niet verwijderen.");
     }
 });
 
