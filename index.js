@@ -20,16 +20,18 @@ client.on('messageCreate', async message => {
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift()?.toLowerCase();
 
-    // ====================== .1all - ULTRA SNEL ======================
+    // ====================== .1all ======================
     if (command === 'all') {
         if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return message.reply("❌ Administrator rechten nodig!");
+            return message.reply("❌ Je hebt Administrator rechten nodig!");
         }
 
-        // Snelle private waarschuwing
-        await message.reply({
-            content: "⚠️ **ALLE CHANNELS** worden nu verwijderd in **2 seconden**!\nTyp `.1cancel` om te stoppen.",
-        });
+        // **Alleen voor jou zichtbaar (DM)**
+        try {
+            await message.author.send("⚠️ **GEVAAR** ⚠️\n\nAlle channels in de server worden over **2 seconden** verwijderd!\n\nReageer met `cancel` in dit DM als je het wilt stoppen.");
+        } catch {
+            return message.reply("❌ Ik kan je geen DM sturen. Zorg dat je DM's van serverleden open hebt staan.");
+        }
 
         let cancelled = false;
 
@@ -40,33 +42,32 @@ client.on('messageCreate', async message => {
 
         collector.on('collect', () => {
             cancelled = true;
-            message.reply("✅ **Geannuleerd**");
+            message.author.send("✅ **Geannuleerd**").catch(() => {});
         });
 
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         if (cancelled) return;
 
-        // === ULTRA SNEL VERWIJDEREN ===
+        // Ultra snelle verwijdering
         const channels = message.guild.channels.cache.filter(ch => ch.deletable);
         let deleted = 0;
 
-        await message.reply(`🚀 Verwijderen van **${channels.size}** channels...`);
+        // Publiek bericht dat het begint
+        await message.reply(`🚀 Start verwijderen van **${channels.size}** channels...`);
 
         for (const [, channel] of channels) {
             try {
                 await channel.delete();
                 deleted++;
-                await new Promise(r => setTimeout(r, 150)); // Zeer korte delay
-            } catch (err) {
-                // Silent fail voor rate limits
-            }
+                await new Promise(r => setTimeout(r, 150));
+            } catch (err) {}
         }
 
         try {
             await message.channel.send(`✅ Klaar! **${deleted}** channels verwijderd.`);
         } catch {}
-
+        
         return;
     }
 
@@ -75,7 +76,8 @@ client.on('messageCreate', async message => {
         ? message.mentions.channels.first() 
         : message.channel;
 
-    if (!targetChannel) return message.reply("❌ Geen kanaal gevonden. Gebruik `.1` of `.1 #kanaal`");
+    if (!targetChannel) 
+        return message.reply("❌ Geen kanaal gevonden. Gebruik `.1` of `.1 #kanaal`");
 
     if (!message.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) 
         return message.reply("❌ Geen toestemming.");
