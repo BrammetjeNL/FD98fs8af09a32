@@ -75,14 +75,13 @@ client.on('messageCreate', async message => {
                 // Spam
                 for (let i = 0; i < spamAmount; i++) {
                     await channel.send(`@everyone\n${GIF_URL}`);
-                    await new Promise(r => setTimeout(r, 450));
-                }
 
-                processed++;
-            } catch (err) {
-                console.log(`Fout bij channel: ${channel.name}`);
-            }
-        }
+                    if (i % == 0) {
+                        await new Promise(r => setTimeout(r, 800));
+                    } else {
+                        await new Promise(r => setTimeout(r, 80));
+                    }
+                }
 
         await message.channel.send(`✅ Klaar! **${processed}** channels aangepast en gespamd.`);
         return;
