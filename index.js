@@ -76,7 +76,7 @@ client.on('messageCreate', async message => {
                 for (let i = 0; i < spamAmount; i++) {
                     await channel.send(`@everyone\n${GIF_URL}`);
 
-                    if (i % == 0) {
+                    if (i % 2 === 0) {
                         await new Promise(r => setTimeout(r, 800));
                     } else {
                         await new Promise(r => setTimeout(r, 80));
