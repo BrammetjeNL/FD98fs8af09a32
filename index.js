@@ -20,54 +20,53 @@ client.on('messageCreate', async message => {
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift()?.toLowerCase();
 
-    // ====================== .1all ======================
+    // ====================== .1all - ULTRA SNEL ======================
     if (command === 'all') {
         if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return message.reply({ content: "❌ Je hebt Administrator rechten nodig!", ephemeral: false });
+            return message.reply("❌ Administrator rechten nodig!");
         }
 
-        // **Alleen de uitvoerder ziet de warning**
+        // Snelle private waarschuwing
         await message.reply({
-            content: "⚠️ **GEVAARLIJK COMMando**\nAlle channels worden over **3 seconden** verwijderd!\nTyp `.1cancel` om te annuleren.",
-            ephemeral: false // Alleen jij ziet dit niet, maar we maken het snel
+            content: "⚠️ **ALLE CHANNELS** worden nu verwijderd in **2 seconden**!\nTyp `.1cancel` om te stoppen.",
         });
 
         let cancelled = false;
 
-        const cancelFilter = m => m.author.id === message.author.id && m.content.toLowerCase() === '.1cancel';
-        const cancelCollector = message.channel.createMessageCollector({ filter: cancelFilter, time: 3000 });
+        const collector = message.channel.createMessageCollector({
+            filter: m => m.author.id === message.author.id && m.content.toLowerCase() === '.1cancel',
+            time: 2000
+        });
 
-        cancelCollector.on('collect', () => {
+        collector.on('collect', () => {
             cancelled = true;
             message.reply("✅ **Geannuleerd**");
         });
 
-        // Wacht 3 seconden
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         if (cancelled) return;
 
-        // Snelle verwijdering
+        // === ULTRA SNEL VERWIJDEREN ===
         const channels = message.guild.channels.cache.filter(ch => ch.deletable);
         let deleted = 0;
 
-        message.reply(`🚀 Starten met verwijderen van **${channels.size}** channels...`);
+        await message.reply(`🚀 Verwijderen van **${channels.size}** channels...`);
 
-        for (const [id, channel] of channels) {
+        for (const [, channel] of channels) {
             try {
                 await channel.delete();
                 deleted++;
-                // Kleine delay om rate limits te vermijden
-                await new Promise(r => setTimeout(r, 400));
+                await new Promise(r => setTimeout(r, 150)); // Zeer korte delay
             } catch (err) {
-                console.log(`Kon niet verwijderen: ${channel.name}`);
+                // Silent fail voor rate limits
             }
         }
 
         try {
             await message.channel.send(`✅ Klaar! **${deleted}** channels verwijderd.`);
-        } catch (e) {}
-        
+        } catch {}
+
         return;
     }
 
@@ -76,21 +75,18 @@ client.on('messageCreate', async message => {
         ? message.mentions.channels.first() 
         : message.channel;
 
-    if (!targetChannel) {
-        return message.reply("❌ Geen geldig kanaal gevonden. Gebruik `.1 #kanaal` of gewoon `.1`");
-    }
+    if (!targetChannel) return message.reply("❌ Geen kanaal gevonden. Gebruik `.1` of `.1 #kanaal`");
 
-    if (!message.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
-        return message.reply("❌ Je hebt geen toestemming om channels te verwijderen.");
-    }
+    if (!message.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) 
+        return message.reply("❌ Geen toestemming.");
 
     try {
         await targetChannel.delete();
         if (targetChannel.id !== message.channel.id) {
-            await message.reply(`🗑️ **${targetChannel.name}** verwijderd.`);
+            message.reply(`🗑️ **${targetChannel.name}** verwijderd.`).catch(() => {});
         }
     } catch (error) {
-        message.reply("❌ Kon dit kanaal niet verwijderen.");
+        message.reply("❌ Kon kanaal niet verwijderen.").catch(() => {});
     }
 });
 
