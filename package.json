@@ -1,13 +1,14 @@
 {
-  "name": "discord-backup-restore-bot",
+  "name": "discord-channel-deleter",
   "version": "1.0.0",
-  "description": "Discord bot die categorieën/kanalen kan backuppen en restoren, met een veilige sandbox-testmodus.",
+  "description": "Discord bot om channels te verwijderen",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "discord.js": "^14.14.1"
+    "discord.js": "^14.18.0"
   },
   "engines": {
     "node": ">=18.0.0"
