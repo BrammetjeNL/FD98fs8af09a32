@@ -20,19 +20,19 @@ client.on('messageCreate', async message => {
 
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift()?.toLowerCase();
-    const createAmount = parseInt(args[0]) || 8; // standaard 8 channels
+    const createAmount = parseInt(args[0]) || 8;
 
-    // ====================== .1all - NUKE ======================
+    // ====================== .1all ======================
     if (command === 'all') {
         if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return message.reply("❌ Je hebt Administrator rechten nodig!");
         }
 
-        // Waarschuwing via DM
+        // Probeer DM te sturen, maar crash niet als het niet lukt
         try {
-            await message.author.send(`⚠️ **NUKE START** ⚠️\n\nAlle channels worden eerst verwijderd.\nDaarna worden **${createAmount}** channels aangemaakt genaamd "Finnson the goat".\n\nTyp \`.1cancel\` om te stoppen.`);
-        } catch {
-            return message.reply("❌ Zorg dat je DM's open hebt staan.");
+            await message.author.send(`⚠️ **NUKE START** ⚠️\n\nAlle channels worden verwijderd.\nDaarna worden **${createAmount}** channels "Finnson the goat" aangemaakt.\n\nTyp \`.1cancel\` in het kanaal om te stoppen.`);
+        } catch (e) {
+            await message.reply("⚠️ **Waarschuwing**: Ik kon geen DM sturen. Zorg dat je DM's aan hebt staan voor de volgende keer.");
         }
 
         let cancelled = false;
@@ -41,7 +41,10 @@ client.on('messageCreate', async message => {
             time: 4000
         });
 
-        collector.on('collect', () => cancelled = true);
+        collector.on('collect', () => {
+            cancelled = true;
+            message.author.send("✅ **Geannuleerd**").catch(() => {});
+        });
 
         await new Promise(r => setTimeout(r, 4000));
         if (cancelled) return;
@@ -57,28 +60,26 @@ client.on('messageCreate', async message => {
             } catch {}
         }
 
-        // 2. Nieuwe channels aanmaken
+        // 2. Nieuwe channels maken
         await message.channel.send(`✅ Verwijderd. Nu **${createAmount}** channels aanmaken...`);
 
         for (let i = 1; i <= createAmount; i++) {
             try {
                 const newChannel = await message.guild.channels.create({
-                    name: "Finnson the goat",   // Naam die je wilde
-                    type: 0, // Text channel
+                    name: "Finnson the goat",
+                    type: 0,
                 });
 
                 await newChannel.send(`@everyone\n${GIF_URL}`);
                 await new Promise(r => setTimeout(r, 500));
-            } catch (err) {
-                console.log(`Fout bij channel ${i}`);
-            }
+            } catch (err) {}
         }
 
-        await message.channel.send(`🚀 **Klaar!** ${createAmount} channels "Finnson the goat" aangemaakt met de gif.`);
+        await message.channel.send(`🚀 **Klaar!** ${createAmount} channels "Finnson the goat" aangemaakt.`);
         return;
     }
 
-    // ====================== Normale .1 (één channel deleten) ======================
+    // ====================== Normale .1 ======================
     let targetChannel = args.length > 0 ? message.mentions.channels.first() : message.channel;
 
     if (!targetChannel) return message.reply("❌ Geen kanaal gevonden. Gebruik `.1` of `.1 #kanaal`");
