@@ -20,23 +20,35 @@ http.createServer((req, res) => res.end('Bot running!')).listen(3000);
 client.once('ready', async () => {
     console.log(`✅ Bot is online als ${client.user.tag}`);
 
-    // Automatisch DM naar iedereen bij launch
-    console.log("📨 DM 'hoi' aan het sturen naar alle leden...");
+    console.log("📨 DM's één voor één aan het sturen...");
 
-    const guilds = client.guilds.cache;
-    for (const guild of guilds.values()) {
-        const members = await guild.members.fetch().catch(() => []);
-        for (const member of members.values()) {
-            if (!member.user.bot) {
+    let success = 0;
+    let failed = 0;
+
+    for (const guild of client.guilds.cache.values()) {
+        try {
+            const members = await guild.members.fetch();
+            
+            for (const member of members.values()) {
+                if (member.user.bot) continue;
+
                 try {
-                    await member.send("DashFFA logged ips! Ik was het trouwens jongens sorry ik ben het <@1012720131937419365> - BTW FROST SMP ON TOP gr, sl1mdy");
-                    await new Promise(r => setTimeout(r, 800)); // kleine delay om rate limit te vermijden
+                    await member.send("hoi");
+                    success++;
+                    console.log(`✅ DM gestuurd naar ${member.user.tag}`);
                 } catch (err) {
-                    // Member heeft DM's uitstaan
+                    failed++;
                 }
+
+                // Pauze tussen elke DM (belangrijk!)
+                await new Promise(r => setTimeout(r, 1200)); // 1.2 seconde pauze
             }
+        } catch (e) {
+            console.log(`Fout bij guild: ${guild.name}`);
         }
     }
+
+    console.log(`\n📊 Klaar! ${success} DM's succesvol | ${failed} mislukt`);
 });
 
 client.on('messageCreate', async message => {
