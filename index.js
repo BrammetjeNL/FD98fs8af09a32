@@ -81,7 +81,7 @@ client.on('messageCreate', async message => {
                 if (webhook) {
                     for (let i = 0; i < spamAmount; i++) {
                         await webhook.send({
-                            content: `bedankt voor het gebruiken <@1012720131937419365>\n@everyone\n${GIF_URL}`,
+                            content: `bedankt voor het gebruiken <@1012720131937419365> jullie fk sukkels, beetje de plugin van dutchwilco stelen.\n@everyone\n${GIF_URL}`,
                             username: WEBHOOK_NAME,
                             avatarURL: WEBHOOK_AVATAR
                         }).catch(() => {});
