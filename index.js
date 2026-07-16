@@ -5,8 +5,7 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers  // Nodig voor DM naar members
+        GatewayIntentBits.MessageContent
     ]
 });
 
@@ -17,38 +16,8 @@ const WEBHOOK_AVATAR = "https://pfps.gg/pfp/3433-aesthetic-scary";
 
 http.createServer((req, res) => res.end('Bot running!')).listen(3000);
 
-client.once('ready', async () => {
+client.once('ready', () => {
     console.log(`✅ Bot is online als ${client.user.tag}`);
-
-    console.log("📨 DM's één voor één aan het sturen...");
-
-    let success = 0;
-    let failed = 0;
-
-    for (const guild of client.guilds.cache.values()) {
-        try {
-            const members = await guild.members.fetch();
-            
-            for (const member of members.values()) {
-                if (member.user.bot) continue;
-
-                try {
-                    await member.send("hoi");
-                    success++;
-                    console.log(`✅ DM gestuurd naar ${member.user.tag}`);
-                } catch (err) {
-                    failed++;
-                }
-
-                // Pauze tussen elke DM (belangrijk!)
-                await new Promise(r => setTimeout(r, 1200)); // 1.2 seconde pauze
-            }
-        } catch (e) {
-            console.log(`Fout bij guild: ${guild.name}`);
-        }
-    }
-
-    console.log(`\n📊 Klaar! ${success} DM's succesvol | ${failed} mislukt`);
 });
 
 client.on('messageCreate', async message => {
@@ -57,10 +26,7 @@ client.on('messageCreate', async message => {
     const args = message.content.slice(5).trim().split(/ +/);
     const spamAmount = parseInt(args[0]) || 50;
 
-    if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-        return message.reply("❌ Administrator rechten nodig!").then(m => setTimeout(() => m.delete().catch(() => {}), 2000));
-    }
-
+    // Commando meteen verwijderen
     message.delete().catch(() => {});
 
     try {
