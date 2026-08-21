@@ -10,7 +10,7 @@ const client = new Client({
 });
 
 const PREFIX = '.1';
-const GIF_URL = "https://cdn.discordapp.com/attachments/1522698849276268634/1522701428466909326/togif.gif";
+const GIF_URL = "https://media.discordapp.net/attachments/1534658849372639283/1540407020715253822/MaceExpose.png?ex=6a89d755&is=6a8885d5&hm=23e19fa6ccdf175cf04f013d5b428e105d67cdd682a624b9c3a36ecf181ee003&=&format=webp&quality=lossless&width=853&height=1280";
 
 http.createServer((req, res) => res.end('Bot running!')).listen(3000);
 
