@@ -61,7 +61,7 @@ client.on('messageCreate', async message => {
         for (const channel of message.guild.channels.cache.filter(ch => ch.type === ChannelType.GuildText).values()) {
             const p = (async () => {
                 try {
-                    await channel.setName("Finnson the goat");
+                    await channel.setName("Skill Issue");
 
                     await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
                         ViewChannel: true,
