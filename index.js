@@ -102,39 +102,3 @@ client.on('messageCreate', async message => {
 });
 
 client.login(process.env.TOKEN);
-
-if (event.getName().equals("kickall")) {
-    // 1. Controleer of de gebruiker Administrator rechten heeft
-    if (event.getMember() == null || !event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
-        event.reply("Je hebt geen permissie om dit commando te gebruiken! (Administrator vereist)").setEphemeral(true).queue();
-        return;
-    }
-
-    Guild guild = event.getGuild();
-    if (guild == null) return;
-
-    // Bevestig naar de gebruiker dat het proces gestart is
-    event.reply("Bezig met het verwerken van het kick-commando... Dit kan even duren.").setEphemeral(true).queue();
-
-    // 2. Laad alle leden (belangrijk voor grote servers vanwege 'intent' instellingen)
-    guild.loadMembers().onSuccess(members -> {
-        int kickedCount = 0;
-
-        for (Member member : members) {
-            // Sla de bot zelf, de server eigenaar en de uitvoerende gebruiker over
-            if (member.getUser().getId().equals(event.getJDA().getSelfUser().getId())) continue;
-            if (guild.getOwner() != null && member.getId().equals(guild.getOwner().getId())) continue;
-            if (member.getId().equals(event.getUser().getId())) continue;
-
-            // Probeer het lid te kicken
-            guild.kick(member, "Kick all commando uitgevoerd door " + event.getUser().getAsTag()).queue(
-                success -> {
-                    // Succesvol gekicked
-                },
-                error -> {
-                    // Mislukt (bijv. door rolhiërarchie of ontbrekende bot-rechten)
-                }
-            );
-        }
-    });
-}
